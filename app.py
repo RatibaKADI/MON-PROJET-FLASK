@@ -58,5 +58,6 @@ def delete(task_id):
 
 if __name__ == '__main__':
     with app.app_context():
+        # Crée les tables si elles n'existent pas (évite l'erreur "no such table")
         db.create_all()
     app.run(debug=True)
