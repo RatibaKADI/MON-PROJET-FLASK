@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Ma ToDo App</title>
+</head>
+<body>
+    <h1>Liste des tâches</h1>
+
+    <form action="/add" method="post">
+        {{ form.hidden_tag() }}
+        {{ form.title(size=30, placeholder="Écris une tâche ici...") }}
+        {{ form.submit() }}
+
+        {% if form.title.errors %}
+            <ul style="color: red;">
+                {% for error in form.title.errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </form>
+
+    <ul>
+        {% for task in tasks %}
+        <li>
+            {{ task.title }}
+            <a href="/delete/{{ task.id }}">Supprimer</a>
+        </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
