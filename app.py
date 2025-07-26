@@ -1,59 +1,37 @@
-import os
-from flask import Flask, render_template, redirect
+from flask import Flask, render_template, request, redirect
 from flask_sqlalchemy import SQLAlchemy
-from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField
-from wtforms.validators import DataRequired, Length
-from flask_wtf.csrf import CSRFProtect
-from dotenv import load_dotenv
-
-# Charge les variables d'environnement depuis le fichier .env
-load_dotenv()
+import os
 
 app = Flask(__name__)
 
-# On récupère la clé secrète depuis .env
-app.secret_key = os.getenv("SECRET_KEY")
-if not app.secret_key:
-    raise ValueError("No SECRET_KEY set for Flask application. Check your .env file")
-
-csrf = CSRFProtect(app)
-
-# Configuration base de données
 basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'tasks.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'tasks.db') + '?check_same_thread=False'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Clé secrète pour sécuriser les formulaires CSRF
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev_key')  # fallback pour dev local
 
 db = SQLAlchemy(app)
 
-# Modèle Task
+# Modèle de données
 class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
 
-# Formulaire avec validation
-class TaskForm(FlaskForm):
-    title = StringField('Nouvelle tâche', validators=[DataRequired(message="La tâche ne peut pas être vide."), Length(max=100, message="La tâche est trop longue (max 100 caractères).")])
-    submit = SubmitField('Ajouter')
-
-# Page principale
+# Page d’accueil
 @app.route('/')
 def index():
-    form = TaskForm()
     tasks = Task.query.all()
-    return render_template('index.html', tasks=tasks, form=form)
+    return render_template('index.html', tasks=tasks)
 
 # Ajouter une tâche
 @app.route('/add', methods=['POST'])
 def add():
-    form = TaskForm()
-    if form.validate_on_submit():
-        new_task = Task(title=form.title.data)
+    title = request.form.get('title')
+    if title and title.strip():  # ignore les titres vides ou espaces seulement
+        new_task = Task(title=title.strip())
         db.session.add(new_task)
         db.session.commit()
-    else:
-        # Tu peux afficher les erreurs dans le HTML, donc pas besoin de faire autre chose ici
-        pass
     return redirect('/')
 
 # Supprimer une tâche
