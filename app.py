@@ -7,7 +7,7 @@ from wtforms.validators import DataRequired, Length
 from flask_wtf.csrf import CSRFProtect
 from dotenv import load_dotenv
 
-# Charger les variables d'environnement depuis .env
+# Charger les variables d'environnement depuis .env (utile en local)
 load_dotenv()
 
 app = Flask(__name__)
@@ -19,8 +19,17 @@ if not app.secret_key:
 
 csrf = CSRFProtect(app)
 
-basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'tasks.db')
+# Configuration dynamique de la base de données : Render met DATABASE_URL, sinon fallback SQLite local
+database_url = os.getenv('DATABASE_URL')
+if database_url:
+    # Correction nécessaire pour PostgreSQL + SQLAlchemy sur Render (ajout du préfixe)
+    if database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql://", 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+else:
+    basedir = os.path.abspath(os.path.dirname(__file__))
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'tasks.db')
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
